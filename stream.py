@@ -4,6 +4,8 @@ import re
 import logging
 import sys
 import configparser
+from geopy.geocoders import Nominatim
+from geopy.extra.rate_limiter import RateLimiter
 # import preprocessor
 log = logging.getLogger(__name__)
 
@@ -24,6 +26,9 @@ hashtags = set(sys.argv[2:])
 
 TCP_IP = 'localhost'
 TCP_PORT = 9001
+
+geolocator = Nominatim(user_agent="CS4371Project")
+geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1)
 
 def tags(t):
     return ['#' + tag for tag in t]
@@ -54,7 +59,7 @@ def getTweet(status):
     except AttributeError:
         location = None#status.user.location
     """
-    location = status.user.location
+    #location = status.user.location
     if hasattr(status, "retweeted_status"):  # Check if Retweet
         try:
             tweet = status.retweeted_status.extended_tweet["full_text"]
@@ -66,6 +71,10 @@ def getTweet(status):
         except AttributeError:
             tweet = status.text
 
+    loc = geocode(status.user.location)
+    if loc is None: return None, None
+    location = str(loc.latitude)+","+str(loc.longitude)
+    
     return location, preprocessing(tweet)
 
 
